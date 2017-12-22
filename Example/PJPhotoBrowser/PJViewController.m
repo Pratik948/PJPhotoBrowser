@@ -23,9 +23,9 @@
     [self.navigationItem setRightBarButtonItem:clearCache animated:YES];
     self.imageArray = [NSMutableArray array];
     for (int i =1 ; i<=10; i++) {
-        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/abstract-q-c-640-480-%d.jpg", i]];
-        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/city-q-c-640-480-%d.jpg", i]];
-        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/nightlife-q-c-640-480-%d.jpg", i]];
+        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/abstract-q-c-1280-1280-%d.jpg", i]];
+        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/city-q-c-1280-1280-%d.jpg", i]];
+        [self.imageArray addObject:[NSString stringWithFormat:@"http://lorempixel.com/output/nightlife-q-c-1280-1280-%d.jpg", i]];
     }
 }
 
@@ -50,6 +50,7 @@
 
 - (PJPhoto*)photoBrowser:(PJPhotoBrowserController *)photoBrowser photoAtIndex:(NSUInteger)index {
     PJPhoto *photo = [PJPhoto photoWithURL:[NSURL URLWithString:[self.imageArray objectAtIndex:index]]];
+    photo.isVideo= index%2==0?YES:NO;
     return photo;
 }
 

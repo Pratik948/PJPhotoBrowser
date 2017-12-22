@@ -31,11 +31,8 @@
 
 @optional
 
-//- (id)photoBrowser:(PJPhotoBrowserController *)photoBrowser thumbPhotoAtIndex:(NSUInteger)index;
 - (UIView *)photoBrowser:(PJPhotoBrowserController *)photoBrowser captionViewForPhotoAtIndex:(NSUInteger)index;
 - (NSString *)photoBrowser:(PJPhotoBrowserController *)photoBrowser titleForPhotoAtIndex:(NSUInteger)index;
-//- (void)photoBrowser:(PJPhotoBrowserController *)photoBrowser didDisplayPhotoAtIndex:(NSUInteger)index;
-//- (void)photoBrowser:(PJPhotoBrowserController *)photoBrowser actionButtonPressedForPhotoAtIndex:(NSUInteger)index;
 - (void)photoBrowserDidFinishModalPresentation:(PJPhotoBrowserController *)photoBrowser;
 - (void)photoBrowser:(PJPhotoBrowserController *)photoBrowser didTapPlayButtonAtPhotoIndex:(NSUInteger)photoIndex;
 - (NSMutableArray*)rightBarButtonItemsForPhotoBrowser:(PJPhotoBrowserController *)photoBrowser;

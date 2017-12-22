@@ -6,7 +6,6 @@
 //
 
 #import "PJPhotoBrowserController.h"
-//#import "PJPhotoBrowser/PJPhotoBrowser-Swift.h"
 #import <SDWebImage/UIImageView+WebCache.h>
 #import <DACircularProgress/DACircularProgressView.h>
 #import "PJZoomImageView.h"
@@ -16,6 +15,7 @@
 @interface PJPhotoContainerCollectionViewCell: UICollectionViewCell
 @property (nonatomic) PJZoomImageView *zoomImageView;
 @property (nonatomic) UIView *captionView;
+@property (nonatomic, setter=setIsVideo:) BOOL isVideo;
 - (void)addCaptionView:(UIView*)view;
 - (void)setImageWithURL:(NSURL*)url;
 @property (nonatomic) id <PJPhotoContainerCollectionViewCellSingleTouchDelegate> delegate;
@@ -23,17 +23,44 @@
 
 @protocol PJPhotoContainerCollectionViewCellSingleTouchDelegate <NSObject>
 - (void)didTapOnCell:(PJPhotoContainerCollectionViewCell*)cell;
+- (void)didTapPlayButton:(PJPhotoContainerCollectionViewCell*)cell;
 @end
 
 @interface PJPhotoContainerCollectionViewCell ()
 @property (nonatomic) CGFloat progress;
 @property (nonatomic) DACircularProgressView *progressView;
+@property (nonatomic) UIButton *videoPlayButton;
 @end
 
 @implementation PJPhotoContainerCollectionViewCell
 
+- (void)setIsVideo:(BOOL)isVideo {
+    _isVideo=isVideo;
+    if (isVideo) {
+        if (!_videoPlayButton || _videoPlayButton.superview != self) {
+            _videoPlayButton = [[UIButton alloc] init];
+            UIImage *image = [UIImage imageNamed:@"playVideo" inBundle:[NSBundle bundleForClass:[self class]] compatibleWithTraitCollection:nil];
+            [_videoPlayButton setImage:image forState:UIControlStateNormal];
+            _videoPlayButton.translatesAutoresizingMaskIntoConstraints=NO;
+            [self addSubview:_videoPlayButton];
+            [_videoPlayButton.centerXAnchor constraintEqualToAnchor:self.centerXAnchor].active=YES;
+            [_videoPlayButton.centerYAnchor constraintEqualToAnchor:self.centerYAnchor].active=YES;
+            [_videoPlayButton.widthAnchor constraintEqualToConstant:CGRectGetWidth([[UIScreen mainScreen] bounds])*0.2].active=YES;
+            [_videoPlayButton.heightAnchor constraintEqualToAnchor:_videoPlayButton.widthAnchor].active=YES;
+            [self bringSubviewToFront:_videoPlayButton];
+            [_videoPlayButton addTarget:self action:@selector(playVideo:) forControlEvents:UIControlEventTouchUpInside];
+        }
+        _videoPlayButton.hidden=NO;
+    }
+    else {
+        _videoPlayButton.hidden=YES;
+    }
+}
+
 - (void)prepareForReuse {
-    self.zoomImageView.image=nil;
+    self.zoomImageView.imageView.image=nil;
+    self.progressView.progress = 0;
+    self.progress = 0;
 }
 
 - (void)layoutSubviews {
@@ -79,27 +106,7 @@
 
 - (void)setImageWithURL:(NSURL*)url {
     self.progressView.progress = MAX(MIN(1, self.progress), 0);
-    //    [self.zoomImageView.imageView sd_setImageWithURL:url
-    //                                    placeholderImage:nil
-    //                                             options:0
-    //                                            progress:^(NSInteger receivedSize, NSInteger expectedSize) {
-    //                                                CGFloat progress = ((receivedSize*1.0)*100.0)/expectedSize;
-    //                                                self.progress=progress;
-    //                                                self.progressView.progress = MAX(MIN(1, progress), 0);
-    //                                            } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL) {
-    //                                                if (image) {
-    //                                                    self.zoomImageView.imageView.image=image;
-    //                                                }
-    //    }];
-    
-//    if (self.zoomImageView.imageView.image==nil) {
-//        self.progressView.hidden=NO;
-//    }
-//    else {
-//        self.progressView.hidden=YES;
-//    }
-    
-    SDWebImageManager *manager = [SDWebImageManager sharedManager];
+     SDWebImageManager *manager = [SDWebImageManager sharedManager];
     [manager downloadImageWithURL:url
                           options:0
                          progress:^(NSInteger receivedSize, NSInteger expectedSize) {
@@ -113,7 +120,7 @@
                             if (!error) {
                                 dispatch_async(dispatch_get_main_queue(), ^{
                                     if (image) {
-                                        self.zoomImageView.image=image;
+                                        self.zoomImageView.imageView.image=image;
                                     }
                                 });
                             }
@@ -123,6 +130,12 @@
 - (void)handleSingleTap {
     if ([self.delegate respondsToSelector:@selector(didTapOnCell:)]) {
         [self.delegate didTapOnCell:self];
+    }
+}
+
+- (void)playVideo:(id)sender {
+    if ([self.delegate respondsToSelector:@selector(didTapPlayButton:)]) {
+        [self.delegate didTapPlayButton:self];
     }
 }
 
@@ -154,7 +167,6 @@
     hairLine.translatesAutoresizingMaskIntoConstraints=NO;
     [self.captionView addSubview:hairLine];
     hairLine.backgroundColor = [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:0.15];
-//    <UIImageView: 0x103579d90; frame = (0 44; 320 0.5); userInteractionEnabled = NO; layer = <CALayer: 0x1c04241a0>>
     [self.captionView addSubview:view];
     view.translatesAutoresizingMaskIntoConstraints=NO;
     [self.captionView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[hairLine(0.5)][view]|" options:0 metrics:nil views:@{@"hairLine":hairLine,@"view":view}]];
@@ -190,10 +202,8 @@
     UIImage *_previousNavigationBarBackgroundImageLandscapePhone;
     
     // Navigation & controls
-//    UIToolbar *_toolbar;
     NSTimer *_controlVisibilityTimer;
     UIBarButtonItem *_previousButton, *_nextButton, *_actionButton, *_doneButton;
-//    MBProgressHUD *_progressHUD;
 
     // Misc
     BOOL _hasBelongedToViewController;
@@ -266,9 +276,7 @@
     else {
         self.automaticallyAdjustsScrollViewInsets = NO;
     }
-//    [self reloadData];
 }
-
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -283,10 +291,8 @@
 }
 
 - (void)viewWillAppear:(BOOL)animated {
-    
     // Super
     [super viewWillAppear:animated];
-    
     // Status bar
     if (!_viewHasAppearedInitially) {
         _leaveStatusBarAlone = [self presentingViewControllerPrefersStatusBarHidden];
@@ -300,42 +306,29 @@
         _previousStatusBarStyle = [[UIApplication sharedApplication] statusBarStyle];
         [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
     }
-    
     // Navigation bar appearance
     if (!_viewIsActive && [self.navigationController.viewControllers objectAtIndex:0] != self) {
         [self storePreviousNavBarAppearance];
     }
     [self setNavBarAppearance:animated];
-    
     if ([self.delegate respondsToSelector:@selector(rightBarButtonItemsForPhotoBrowser:)]) {
         NSMutableArray *arrButtons = [self.delegate rightBarButtonItemsForPhotoBrowser:self];
         [self.navigationItem setRightBarButtonItems:arrButtons animated:YES];
     }
-    
     // Update UI
     [self hideControlsAfterDelay];
-    
-    // Initial appearance
-//    if (!_viewHasAppearedInitially) {
-//        if (_startOnGrid) {
-//            [self showGrid:NO];
-//        }
-//    }
-    
     // If rotation occured while we're presenting a modal
     // and the index changed, make sure we show the right one now
     if (_currentPageIndex != _pageIndexBeforeRotation) {
         [self jumpToPageAtIndex:_pageIndexBeforeRotation animated:NO];
     }
-    
     // Layout
     [self.view setNeedsLayout];
-    
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    [self reloadData];
+    [self setNavBarAppearance:animated];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -345,16 +338,11 @@
     // self.isMovingFromParentViewController just doesn't work, ever. Or self.isBeingDismissed
     if ((_doneButton && self.navigationController.isBeingDismissed) ||
         ([self.navigationController.viewControllers objectAtIndex:0] != self && ![self.navigationController.viewControllers containsObject:self])) {
-        
         // State
         _viewIsActive = NO;
-        [self clearCurrentVideo]; // Clear current playing video
-        
         // Bar state / appearance
         [self restorePreviousNavBarAppearance:animated];
-        
     }
-    
     // Controls
     [self.navigationController.navigationBar.layer removeAllAnimations]; // Stop all animations on nav bar
     [NSObject cancelPreviousPerformRequestsWithTarget:self]; // Cancel any pending toggles from taps
@@ -373,37 +361,33 @@
 - (NSUInteger)currentIndex {
     NSArray *indexPaths = [self.collectionView indexPathsForVisibleItems];
     if (indexPaths.count>0) {
-        _currentIndex = [(NSIndexPath*)indexPaths.firstObject item];
+        _currentPageIndex = [(NSIndexPath*)indexPaths.firstObject item];
     }
-    return _currentIndex;
+    return _currentPageIndex;
 }
 
 - (void)reloadData {
     
     // Reset
     _photoCount = NSNotFound;
-    
     // Get data
     NSUInteger numberOfPhotos = [self numberOfPhotos];
-//    [self releaseAllUnderlyingPhotos:YES];
     [_photos removeAllObjects];
     [_thumbPhotos removeAllObjects];
     for (int i = 0; i < numberOfPhotos; i++) {
         [_photos addObject:[NSNull null]];
         [_thumbPhotos addObject:[NSNull null]];
     }
-    
     // Update current page index
     if (numberOfPhotos > 0) {
         _currentPageIndex = MAX(0, MIN(_currentPageIndex, numberOfPhotos - 1));
     } else {
         _currentPageIndex = 0;
     }
-    
     // Update layout
     if ([self isViewLoaded]) {
-        [self.collectionView reloadData];
         [self performLayout];
+        [self.collectionView reloadData];
         [self.view setNeedsLayout];
     }
     
@@ -414,15 +398,11 @@
     // Setup
     _performingLayout = YES;
     NSUInteger numberOfPhotos = [self numberOfPhotos];
-    
-    // Setup pages
-//    [_visiblePages removeAllObjects];
-//    [_recycledPages removeAllObjects];
-    
+
     // Navigation buttons
     if ([self.navigationController.viewControllers objectAtIndex:0] == self) {
         // We're first on stack so show done button
-        _doneButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Done", nil) style:UIBarButtonItemStylePlain target:self action:@selector(doneButtonPressed:)];
+        _doneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(doneButtonPressed:)];
         // Set appearance
         [_doneButton setBackgroundImage:nil forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
         [_doneButton setBackgroundImage:nil forState:UIControlStateNormal barMetrics:UIBarMetricsCompact];
@@ -454,14 +434,6 @@
     UIBarButtonItem *flexSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
     NSMutableArray *items = [[NSMutableArray alloc] init];
     
-    // Left button - Grid
-//    if (_enableGrid) {
-//        hasItems = YES;
-//        [items addObject:[[UIBarButtonItem alloc] initWithImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/UIBarButtonItemGrid" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] style:UIBarButtonItemStylePlain target:self action:@selector(showGridAnimated)]];
-//    } else {
-//        [items addObject:fixedSpace];
-//    }
-    
     // Middle - Nav
     if (_previousButton && _nextButton && numberOfPhotos > 1) {
         hasItems = YES;
@@ -473,7 +445,6 @@
     } else {
         [items addObject:flexSpace];
     }
-    
     // Right - Action
     if (_actionButton && !(!hasItems && !self.navigationItem.rightBarButtonItem)) {
         [items addObject:_actionButton];
@@ -483,28 +454,6 @@
             self.navigationItem.rightBarButtonItem = _actionButton;
         [items addObject:fixedSpace];
     }
-    
-    // Toolbar visibility
-//    [_toolbar setItems:items];
-//    BOOL hideToolbar = YES;
-//    for (UIBarButtonItem* item in _toolbar.items) {
-//        if (item != fixedSpace && item != flexSpace) {
-//            hideToolbar = NO;
-//            break;
-//        }
-//    }
-//    if (hideToolbar) {
-//        [_toolbar removeFromSuperview];
-//    } else {
-//        [self.view addSubview:_toolbar];
-//    }
-//
-    // Update nav
-    [self updateNavigation];
-    
-    // Content offset
-//    _pagingScrollView.contentOffset = [self contentOffsetForPageAtIndex:_currentPageIndex];
-//    [self tilePages];
     _performingLayout = NO;
 }
 
@@ -532,8 +481,7 @@
         }
     }
     if (presenting) {
-        //        return [presenting prefersStatusBarHidden];
-        return NO;
+        return [presenting prefersStatusBarHidden];
     } else {
         return NO;
     }
@@ -547,9 +495,10 @@
         if ([_collectionView numberOfItemsInSection:0]>=indexPath.item) {
             [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:animated];
         }
-        [self updateNavigation];
     }
-    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self updateNavigation];
+    });
     // Update timer to give more time
     [self hideControlsAfterDelay];
 }
@@ -572,9 +521,9 @@
     NSUInteger numberOfPhotos = [self numberOfPhotos];
     if (numberOfPhotos > 1) {
         if ([_delegate respondsToSelector:@selector(photoBrowser:titleForPhotoAtIndex:)]) {
-            self.title = [_delegate photoBrowser:self titleForPhotoAtIndex:_currentPageIndex];
+            self.title = [_delegate photoBrowser:self titleForPhotoAtIndex:(self.currentIndex)];
         } else {
-            self.title = [NSString stringWithFormat:@"%lu %@ %lu", (unsigned long)([self currentIndex]+1), NSLocalizedString(@"of", @"Used in the context: 'Showing 1 of 3 items'"), (unsigned long)numberOfPhotos];
+            self.title = [NSString stringWithFormat:@"%lu %@ %lu", (unsigned long)(self.currentIndex+1), NSLocalizedString(@"of", @"Used in the context: 'Showing 1 of 3 items'"), (unsigned long)numberOfPhotos];
         }
     } else {
         self.title = nil;
@@ -589,6 +538,7 @@
     navBar.shadowImage = nil;
     navBar.translucent = YES;
     navBar.barStyle = UIBarStyleBlackTranslucent;
+    navBar.translucent=YES;
     [navBar setBackgroundImage:nil forBarMetrics:UIBarMetricsDefault];
     [navBar setBackgroundImage:nil forBarMetrics:UIBarMetricsCompact];
 }
@@ -612,10 +562,6 @@
     }
 }
 
-- (void)clearCurrentVideo {
-#warning stop playing video
-}
-
 - (void)setCurrentPhotoIndex:(NSUInteger)index {
     if ([self.collectionView numberOfItemsInSection:0]>=index) {
         if (index==0) {
@@ -624,9 +570,7 @@
         else {
             _currentPageIndex=index;
         }
-        NSIndexPath *indexPath = [NSIndexPath indexPathForItem:_currentPageIndex inSection:0];
-        [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:NO];
-        [self updateNavigation];
+        [self jumpToPageAtIndex:_currentPageIndex animated:NO];
     }
 }
 
@@ -644,7 +588,7 @@
     [self cancelControlHiding];
     
     // Animations & positions
-//    CGFloat animatonOffset = 20;
+    // CGFloat animatonOffset = 20;
     CGFloat animationDuration = (animated ? 0.35 : 0);
     
     // Status bar
@@ -656,7 +600,6 @@
             // Non-view controller based
 //            [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:animated ? UIStatusBarAnimationSlide : UIStatusBarAnimationNone];
             [UIApplication sharedApplication].statusBarHidden=hidden;
-            
         } else {
             
             // View controller based so animate away
@@ -668,59 +611,13 @@
         }
         
     }
-    
-    // Toolbar, nav bar and captions
-    // Pre-appear animation positions for sliding
-    if ([self areControlsHidden] && !hidden && animated) {
-        
-        // Toolbar
-//        _toolbar.frame = CGRectOffset([self frameForToolbarAtOrientation:self.interfaceOrientation], 0, animatonOffset);
-        
-        // Captions
-//        for (MWZoomingScrollView *page in _visiblePages) {
-//            if (page.captionView) {
-//                MWCaptionView *v = page.captionView;
-//                // Pass any index, all we're interested in is the Y
-//                CGRect captionFrame = [self frameForCaptionView:v atIndex:0];
-//                captionFrame.origin.x = v.frame.origin.x; // Reset X
-//                v.frame = CGRectOffset(captionFrame, 0, animatonOffset);
-//            }
-//        }
-    }
+
     [UIView animateWithDuration:animationDuration animations:^(void) {
         
         CGFloat alpha = hidden ? 0 : 1;
         
         // Nav bar slides up on it's own on iOS 7+
         [self.navigationController.navigationBar setAlpha:alpha];
-        
-        // Toolbar
-//        _toolbar.frame = [self frameForToolbarAtOrientation:self.interfaceOrientation];
-//        if (hidden) _toolbar.frame = CGRectOffset(_toolbar.frame, 0, animatonOffset);
-//        _toolbar.alpha = alpha;
-        
-        // Captions
-//        for (MWZoomingScrollView *page in _visiblePages) {
-//            if (page.captionView) {
-//                MWCaptionView *v = page.captionView;
-//                // Pass any index, all we're interested in is the Y
-//                CGRect captionFrame = [self frameForCaptionView:v atIndex:0];
-//                captionFrame.origin.x = v.frame.origin.x; // Reset X
-//                if (hidden) captionFrame = CGRectOffset(captionFrame, 0, animatonOffset);
-//                v.frame = captionFrame;
-//                v.alpha = alpha;
-//            }
-//        }
-        
-        // Selected buttons
-//        for (MWZoomingScrollView *page in _visiblePages) {
-//            if (page.selectedButton) {
-//                UIButton *v = page.selectedButton;
-//                CGRect newFrame = [self frameForSelectedButton:v atIndex:0];
-//                newFrame.origin.x = v.frame.origin.x;
-//                v.frame = newFrame;
-//            }
-//        }
         for (PJPhotoContainerCollectionViewCell *cell in self.collectionView.visibleCells) {
             [UIView animateWithDuration:animationDuration animations:^{
                 CGFloat alpha = hidden ? 0 : 1;
@@ -778,16 +675,6 @@
 - (void)doneButtonPressed:(id)sender {
     // Only if we're modal and there's a done button
     if (_doneButton) {
-        // See if we actually just want to show/hide grid
-//        if (self.enableGrid) {
-//            if (self.startOnGrid && !_gridController) {
-//                [self showGrid:YES];
-//                return;
-//            } else if (!self.startOnGrid && _gridController) {
-//                [self hideGrid];
-//                return;
-//            }
-//        }
         // Dismiss view controller
         if ([_delegate respondsToSelector:@selector(photoBrowserDidFinishModalPresentation:)]) {
             // Call delegate method and let them dismiss us
@@ -813,6 +700,8 @@
         _collectionView.delegate=self;
         _collectionView.pagingEnabled=YES;
         _collectionView.backgroundColor = [UIColor clearColor];
+        _collectionView.showsHorizontalScrollIndicator=NO;
+        _collectionView.showsVerticalScrollIndicator=NO;
         [self.view addSubview:_collectionView];
         [_collectionView registerClass:[PJPhotoContainerCollectionViewCell class] forCellWithReuseIdentifier:@"cell"];
         [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[cv]|" options:0 metrics:nil views:@{@"cv":_collectionView}]];
@@ -841,12 +730,6 @@
         photo = [_fixedPhotosArray objectAtIndex:indexPath.item];
     }
     [cell setImageWithURL:photo.photoURL];
-//    [cell.zoomImageView.imageView sd_setImageWithURL:photo.photoURL placeholderImage:nil options:0 progress:^(NSInteger receivedSize, NSInteger expectedSize) {
-//        CGFloat progress = ((receivedSize*1.0)*100.0)/expectedSize;
-//        cell.progress=progress;
-//    } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL) {
-//
-//    }];
     if ([_delegate respondsToSelector:@selector(photoBrowser:captionViewForPhotoAtIndex:)]) {
         UIView *view = [_delegate photoBrowser:self captionViewForPhotoAtIndex:indexPath.item];
         if (view) {
@@ -859,7 +742,9 @@
             cell.captionView.alpha=1;
         }
     }
+    cell.isVideo=photo.isVideo;
     cell.delegate=self;
+    [cell insertSubview:cell.videoPlayButton aboveSubview:cell.zoomImageView];
     return cell;
 }
 
@@ -871,6 +756,12 @@
     }
     else {
         [self hideControls];
+    }
+}
+
+- (void)didTapPlayButton:(PJPhotoContainerCollectionViewCell *)cell {
+    if ([self.delegate respondsToSelector:@selector(photoBrowser:didTapPlayButtonAtPhotoIndex:)]) {
+        [self.delegate photoBrowser:self didTapPlayButtonAtPhotoIndex:self.currentIndex];
     }
 }
 
@@ -895,13 +786,5 @@
 - (void)collectionView:(UICollectionView *)collectionView didEndDisplayingCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
     [self updateNavigation];
 }
-
-//- (void)collectionView:(UICollectionView *)collectionView willDisplayCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
-//    [self updateNavigation];
-//}
-
-//- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
-//    [self updateNavigation];
-//}
 
 @end

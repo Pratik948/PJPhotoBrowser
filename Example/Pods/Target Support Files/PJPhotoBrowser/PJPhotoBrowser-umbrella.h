@@ -12,6 +12,7 @@
 
 #import "PJPhoto.h"
 #import "PJPhotoBrowserController.h"
+#import "PJZoomImageView.h"
 
 FOUNDATION_EXPORT double PJPhotoBrowserVersionNumber;
 FOUNDATION_EXPORT const unsigned char PJPhotoBrowserVersionString[];

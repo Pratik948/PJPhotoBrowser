@@ -13,7 +13,6 @@ typedef enum : NSUInteger {
 } ZoomMode;
 
 @interface PJZoomImageView () <UIScrollViewDelegate>
-@property (nonatomic) UIImageView *imageView;
 @property (nonatomic) CGSize oldSize;
 @property (nonatomic) ZoomMode zoomMode;
 @end
@@ -35,7 +34,7 @@ typedef enum : NSUInteger {
 
 - (instancetype)initWithImage:(UIImage*)image {
     self = [super initWithFrame:CGRectZero];
-    self.image=image;
+    self.imageView.image=image;
     [self setup];
     return self;
 }
